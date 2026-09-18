@@ -70,7 +70,9 @@ impl JevSettingsView {
             }
             3 => {
                 self.message = match remove_api_key(&self.codex_home) {
-                    Ok(()) => "Saved key removed. An environment key still takes precedence.",
+                    Ok(()) => {
+                        "Saved key removed. A valid environment key will be used as fallback."
+                    }
                     Err(_) => "Could not remove saved key. Check CODEX_HOME permissions.",
                 };
             }
@@ -93,10 +95,10 @@ impl JevSettingsView {
                 "Enter save · Esc cancel · Ctrl+U clear".dim().into(),
             ]);
         } else {
-            let source = if self.environment_key_configured {
-                "TYPESAFE_API_KEY (overrides saved key)"
-            } else if self.codex_home.join("jev-api-key").is_file() {
-                "Saved locally"
+            let source = if self.codex_home.join("jev-api-key").is_file() {
+                "Saved locally (preferred if valid)"
+            } else if self.environment_key_configured {
+                "TYPESAFE_API_KEY (fallback)"
             } else {
                 "Not configured"
             };

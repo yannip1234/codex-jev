@@ -44,7 +44,7 @@ struct JevSettingsView: View {
                     Button("Remove Saved Key", role: .destructive) { settings.removeKey() }.disabled(!settings.keyPresent)
                 }
                 if settings.environmentKeyPresent {
-                    Text("TYPESAFE_API_KEY is set in this app’s environment and takes precedence over the saved key.")
+                    Text(settings.savedKeyValid ? "The saved app key is active. TYPESAFE_API_KEY is available only as a fallback." : "No valid saved key; TYPESAFE_API_KEY is used as a fallback.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Text("The key is stored in a private file in your Codex home and is never added to chat.")

@@ -97,3 +97,19 @@ import Testing
     let pieces = MessageCompressor.passages(unicode)
     #expect(pieces.count <= 48 && pieces.joined() == unicode)
 }
+
+@Test @MainActor func savedAppKeyWinsAndChangesApplyWithoutRestart() throws {
+    let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: home) }
+    let store = SettingsStore(home: home)
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: " env-secret ") == "env-secret")
+    #expect(store.saveKey("saved-secret"))
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: "env-secret") == "saved-secret")
+    #expect(store.saveKey("replacement-secret"))
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: "env-secret") == "replacement-secret")
+    try privateAtomicWrite(Data("bad\nkey".utf8), to: home.appendingPathComponent("jev-api-key"))
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: "env-secret") == "env-secret")
+    store.removeKey()
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: "env-secret") == "env-secret")
+    #expect(MessageCompressor.resolvedKey(home: home, environmentKey: " ") == nil)
+}

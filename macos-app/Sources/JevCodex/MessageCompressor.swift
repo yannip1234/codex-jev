@@ -43,13 +43,18 @@ final class MessageCompressor {
         let home = home ?? Self.defaultHome
         self.home = home
         self.key = key ?? {
-            let env = ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"] ?? ""
-            if let valid = Self.validKey(env) { return valid }
-            let file = home.appendingPathComponent("jev-api-key")
-            guard let size = try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 8192 else { return nil }
-            return Self.validKey((try? String(contentsOf: file, encoding: .utf8)) ?? "")
+            Self.resolvedKey(home: home, environmentKey: ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"])
         }
         injectedJudge = judge
+    }
+
+    static func resolvedKey(home: URL, environmentKey: String?) -> String? {
+        let file = home.appendingPathComponent("jev-api-key")
+        if let size = try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 8192,
+           let saved = try? String(contentsOf: file, encoding: .utf8), let valid = validKey(saved) {
+            return valid
+        }
+        return validKey(environmentKey ?? "")
     }
 
     func compress(_ original: String) async -> MessageCompressionResult {

@@ -78,7 +78,7 @@ Enabled features send eligible conversation text to TypeSafe.
   History compaction: off
 > Remove saved API key
 
-Saved key removed. An environment key still takes precedence.
+Saved key removed. A valid environment key will be used as fallback.
 ↑/↓ select · Enter change · Esc close
 "#);
 }
@@ -122,4 +122,25 @@ fn invalid_key_stays_in_editor_and_preserves_existing_key() {
     view.on_ctrl_c();
     assert!(view.key_input.is_none());
     assert!(view.is_complete());
+}
+
+#[test]
+fn saved_key_is_shown_as_preferred_when_environment_is_also_configured() {
+    let home = tempfile::tempdir().unwrap();
+    save_api_key(home.path(), "saved-test-secret").unwrap();
+    let mut view = JevSettingsView::new(home.path().to_path_buf());
+    view.environment_key_configured = true;
+    insta::assert_snapshot!(render_view(&view), @r#"
+Jev settings
+API key: Saved locally (preferred if valid)
+Enabled features send eligible conversation text to TypeSafe.
+
+> Add or replace API key
+  Tool-output compression: on
+  History compaction: on
+  Remove saved API key
+
+Changes apply to the next compression or compaction.
+↑/↓ select · Enter change · Esc close
+"#);
 }

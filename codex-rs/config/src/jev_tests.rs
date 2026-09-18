@@ -35,16 +35,43 @@ fn saved_key_is_trimmed_replaced_and_removed() {
 }
 
 #[test]
-fn environment_key_takes_precedence_but_empty_value_falls_back() {
+fn saved_key_takes_precedence_and_environment_is_a_fallback() {
     let home = tempfile::tempdir().unwrap();
     save_api_key(home.path(), "saved-secret").unwrap();
     assert_eq!(
         load_api_key_with_env(home.path(), Some(" env-secret ".into())),
-        Some("env-secret".into())
+        Some("saved-secret".into())
     );
     assert_eq!(
         load_api_key_with_env(home.path(), Some(" ".into())),
         Some("saved-secret".into())
+    );
+}
+
+#[test]
+fn missing_or_invalid_saved_key_uses_environment_and_replacement_applies_immediately() {
+    let home = tempfile::tempdir().unwrap();
+    let environment = Some(" env-secret ".to_owned());
+    assert_eq!(
+        load_api_key_with_env(home.path(), environment.clone()),
+        Some("env-secret".into())
+    );
+    for invalid in ["", "two\nlines"] {
+        std::fs::write(home.path().join("jev-api-key"), invalid).unwrap();
+        assert_eq!(
+            load_api_key_with_env(home.path(), environment.clone()),
+            Some("env-secret".into())
+        );
+    }
+    save_api_key(home.path(), "replacement-secret").unwrap();
+    assert_eq!(
+        load_api_key_with_env(home.path(), environment.clone()),
+        Some("replacement-secret".into())
+    );
+    remove_api_key(home.path()).unwrap();
+    assert_eq!(
+        load_api_key_with_env(home.path(), environment),
+        Some("env-secret".into())
     );
 }
 

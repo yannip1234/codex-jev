@@ -9,10 +9,18 @@ test -x "$HOST" || { echo "Matching code-mode helper must be executable: $HOST" 
 swift build --package-path "$SOURCE_DIR" -c release
 BIN_DIR="$(swift build --package-path "$SOURCE_DIR" -c release --show-bin-path)"
 mkdir -p "$OUTPUT/Contents/MacOS" "$OUTPUT/Contents/Resources"
-cp "$BIN_DIR/JevCodex" "$OUTPUT/Contents/MacOS/JevCodex"
-cp "$BACKEND" "$OUTPUT/Contents/Resources/codex-jev"
+# Replace executable inodes so macOS does not reuse a cached signature for an old build.
+replace_executable() {
+  local staging
+  staging="$(mktemp "${2}.XXXXXX")"
+  cp "$1" "$staging"
+  chmod 755 "$staging"
+  mv -f "$staging" "$2"
+}
+replace_executable "$BIN_DIR/JevCodex" "$OUTPUT/Contents/MacOS/JevCodex"
+replace_executable "$BACKEND" "$OUTPUT/Contents/Resources/codex-jev"
 cp "$SOURCE_DIR/../LICENSE" "$SOURCE_DIR/../NOTICE" "$SOURCE_DIR/../JEV.md" "$OUTPUT/Contents/Resources/"
-cp "$HOST" "$OUTPUT/Contents/Resources/codex-code-mode-host"
+replace_executable "$HOST" "$OUTPUT/Contents/Resources/codex-code-mode-host"
 cat > "$OUTPUT/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -22,8 +30,8 @@ cat > "$OUTPUT/Contents/Info.plist" <<'PLIST'
 <key>CFBundleDisplayName</key><string>Jev Codex</string>
 <key>CFBundleExecutable</key><string>JevCodex</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.3.0</string>
-<key>CFBundleVersion</key><string>3</string>
+<key>CFBundleShortVersionString</key><string>0.3.1</string>
+<key>CFBundleVersion</key><string>4</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>

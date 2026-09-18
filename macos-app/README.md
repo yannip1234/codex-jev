@@ -1,5 +1,7 @@
 # Jev Codex for macOS
 
+An experimental [official desktop bridge](bridge/README.md) can also launch the installed Codex app against this engine and check outgoing messages with Jev.
+
 Native SwiftUI client for the custom `codex-jev app-server` harness. Requires macOS 14+ and a Swift 6 toolchain to build. It reuses the active Codex home's authentication and stores its task index in `~/Library/Application Support/JevCodex/tasks.json`.
 
 ```sh
@@ -9,7 +11,7 @@ swift test
 open /absolute/path/to/JevCodex.app
 ```
 
-For development, set `JEV_CODEX_BINARY=/absolute/path/to/codex-jev` before running `swift run`. Sign in with `codex login` if there is no existing Codex authentication. Open Settings with Command-comma to save the Jev key and configure compression. `TYPESAFE_API_KEY` takes precedence over the saved key. Settings apply to the next compression or compaction. The key is stored at `$CODEX_HOME/jev-api-key` (default `~/.codex/jev-api-key`) with mode 0600; preferences use `jev-settings.json` in the same directory.
+For development, set `JEV_CODEX_BINARY=/absolute/path/to/codex-jev` before running `swift run`. Sign in with `codex login` if there is no existing Codex authentication. Open Settings with Command-comma to save the Jev key and configure compression. The valid key saved in app Settings takes precedence; `TYPESAFE_API_KEY` is used only if the saved key is missing or invalid. Settings apply to the next compression or compaction. The key is stored at `$CODEX_HOME/jev-api-key` (default `~/.codex/jev-api-key`) with mode 0600; preferences use `jev-settings.json` in the same directory.
 
 Choose a project from the composer's plus menu. Return sends, Shift-Return or Option-Return inserts a newline, and Command-Return also sends. Files/folders are attached as explicit paths; images use the harness's local-image input (up to five images, 10 MB each). The Add menu also provides Plan mode and a persistent goal with an optional token budget. Starting/resuming a goal can launch work immediately; Pause stops future continuation, while Stop interrupts the current turn.
 

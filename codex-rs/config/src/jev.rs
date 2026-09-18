@@ -44,19 +44,22 @@ pub fn save_settings(codex_home: &Path, settings: &JevSettings) -> io::Result<()
     )
 }
 
-/// The environment takes precedence; neither source is logged or included in settings Debug.
+/// The valid saved Settings key takes precedence; neither source is logged or included in settings Debug.
 pub fn load_api_key(codex_home: &Path) -> Option<String> {
     load_api_key_with_env(codex_home, std::env::var("TYPESAFE_API_KEY").ok())
 }
 
 fn load_api_key_with_env(codex_home: &Path, environment_key: Option<String>) -> Option<String> {
-    environment_key
+    fs::read_to_string(codex_home.join(API_KEY_FILE))
+        .ok()
         .as_deref()
         .and_then(valid_key)
         .map(str::to_owned)
         .or_else(|| {
-            let key = fs::read_to_string(codex_home.join(API_KEY_FILE)).ok()?;
-            valid_key(&key).map(str::to_owned)
+            environment_key
+                .as_deref()
+                .and_then(valid_key)
+                .map(str::to_owned)
         })
 }
 

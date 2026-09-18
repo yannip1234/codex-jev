@@ -6,7 +6,7 @@ This fork adds extractive Jev compression to OpenAI Codex. It includes a native 
 
 Launch **Jev Codex.app** and open **Settings** to save a Jev/TypeSafe API key and enable or disable tool-output compression and history compaction. The terminal equivalent is `/jev`. The native composer also includes a model/effort popover populated from the harness model catalog; selections are validated, saved locally and applied to the next turn.
 
-A nonempty `TYPESAFE_API_KEY` environment variable overrides the saved key. Otherwise the harness reads `$CODEX_HOME/jev-api-key` (default `~/.codex/jev-api-key`). The saved key is a private local file, not part of config.toml or a conversation. Preferences are in `jev-settings.json` in the same directory. Removing the saved key does not unset an inherited environment variable. No Jev calls are made without a configured key.
+The valid key saved in Settings at `$CODEX_HOME/jev-api-key` (default `~/.codex/jev-api-key`) takes priority. The harness uses a valid `TYPESAFE_API_KEY` environment variable only when the saved key is missing or invalid. The saved key is a private local file, not part of config.toml or a conversation. Preferences are in `jev-settings.json` in the same directory. Removing the saved key does not unset an inherited environment variable. No Jev calls are made without a configured key.
 
 OpenAI authentication remains separate; this app uses the Codex home and login already configured locally. The native app connects to its bundled custom `codex-jev app-server` process. Project permissions and approval requests remain enforced by Codex.
 
