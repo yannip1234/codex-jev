@@ -50,7 +50,7 @@ import Testing
     """#
     try source.write(to: executable, atomically: true, encoding: .utf8)
     try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-    let model = ChatModel(indexURL: directory.appendingPathComponent("tasks.json"))
+    let model = ChatModel(indexURL: directory.appendingPathComponent("tasks.json"), messageCompressor: MessageCompressor(key: { nil }))
     defer { model.server.stop() }
     await model.connect(executable: executable)
     model.cwd = directory.path

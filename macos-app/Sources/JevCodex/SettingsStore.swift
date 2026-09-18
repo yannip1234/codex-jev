@@ -26,6 +26,7 @@ func privateAtomicWrite(_ data: Data, to url: URL) throws {
 final class SettingsStore: ObservableObject {
     @Published var preferences: JevPreferences
     @Published var keyPresent = false
+    @Published var messageCompressionEnabled = true
     @Published private(set) var savedKeyValid = false
     @Published private(set) var compressionStatus = CompressionStatus()
     @Published var notice: String?
@@ -36,6 +37,7 @@ final class SettingsStore: ObservableObject {
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex")
         let settings = self.home.appendingPathComponent("jev-settings.json")
         preferences = (try? JSONDecoder().decode(JevPreferences.self, from: Data(contentsOf: settings))) ?? JevPreferences()
+        messageCompressionEnabled = MessageCompressor.enabled(home: self.home)
         refreshKeyStatus()
         refreshCompressionStatus()
     }
@@ -52,7 +54,7 @@ final class SettingsStore: ObservableObject {
     }
 
     var compressionConfiguration: String {
-        guard preferences.tool_compression || preferences.compaction else { return "Disabled" }
+        guard messageCompressionEnabled || preferences.tool_compression || preferences.compaction else { return "Disabled" }
         return environmentKeyPresent || savedKeyValid ? "Enabled · key configured" : "API key required"
     }
 
@@ -65,6 +67,14 @@ final class SettingsStore: ObservableObject {
         let key = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return !key.isEmpty && key.utf8.count <= 8192
             && !key.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.controlCharacters).contains($0) })
+    }
+
+    func saveMessagePreference() {
+        do {
+            try privateAtomicWrite(JSONEncoder().encode(MessageCompressionPreference(enabled: messageCompressionEnabled)),
+                to: home.appendingPathComponent("jev-message-settings.json"))
+            notice = "Message compaction setting saved."
+        } catch { notice = error.localizedDescription }
     }
 
     func savePreferences() {

@@ -75,7 +75,12 @@ private func catalogModel(_ id: String, defaultModel: Bool = false, defaultEffor
     """#
     try source.write(to: executable, atomically: true, encoding: .utf8)
     try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-    let model = ChatModel(indexURL: directory.appendingPathComponent("tasks.json"))
+    var duringCompression: (() -> Void)?
+    let compressor = MessageCompressor(home: directory, key: { "test-key" }, judge: { _, questions in
+        duringCompression?()
+        return Dictionary(uniqueKeysWithValues: questions.keys.map { ($0, $0 == "drop_1" || $0.hasPrefix("verify_") ? 1.0 : 0.0) })
+    })
+    let model = ChatModel(indexURL: directory.appendingPathComponent("tasks.json"), messageCompressor: compressor)
     defer { model.server.stop() }
     await model.connect(executable: executable)
     #expect(model.error == nil)
@@ -83,8 +88,11 @@ private func catalogModel(_ id: String, defaultModel: Bool = false, defaultEffor
     model.modelSelection.selectModel("second")
     model.modelSelection.selectEffort("high")
     model.cwd = directory.path
-    model.draft = "Say hello"
+    model.draft = "Say hello\n" + String(repeating: "Thank you very much for helping with this request; ", count: 12)
+    duringCompression = { model.draft = "My next message" }
     await model.send()
+    #expect(model.draft == "My next message")
+    #expect(model.messageCompression?.savedEstimate ?? 0 > 0)
     let received = try JSONSerialization.jsonObject(with: Data(contentsOf: receipt)) as? [String: Any]
     #expect(received?["model"] as? String == "wire-second")
     #expect(received?["effort"] as? String == "high")

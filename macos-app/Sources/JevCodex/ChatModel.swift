@@ -59,6 +59,9 @@ final class ChatModel: ObservableObject {
     @Published var userQuestions: [UserQuestionRequest] = []
     @Published var activity = ActivityState()
     @Published var contextStatus = ContextStatus()
+    @Published var messageCompression: MessageCompressionResult?
+    @Published var compressingMessage = false
+    let messageCompressor: MessageCompressor
     @Published var cwd = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("JevCodex/Workspace").path
     @Published var busy = false
@@ -78,7 +81,8 @@ final class ChatModel: ObservableObject {
     private var pinsURL: URL { indexURL.deletingLastPathComponent().appendingPathComponent("pinned-tasks.json") }
     var taskTitle: String { tasks.first(where: { $0.id == selectedID })?.title ?? "New chat" }
 
-    init(indexURL: URL? = nil) {
+    init(indexURL: URL? = nil, messageCompressor: MessageCompressor? = nil) {
+        self.messageCompressor = messageCompressor ?? MessageCompressor()
         self.indexURL = indexURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("JevCodex/tasks.json")
         modelSelection = ModelSelection(url: self.indexURL.deletingLastPathComponent().appendingPathComponent("model-preferences.json"))
@@ -128,7 +132,7 @@ final class ChatModel: ObservableObject {
     func newTask() {
         guard !busy, !running, !contextStatus.isCompacting else { return }
         selectedID = nil; loadedID = nil; items = []; draft = ""; error = nil
-        attachments = []; goal = nil; activity.reset(); contextStatus = ContextStatus(); approvalMode = .ask; planMode = false
+        attachments = []; goal = nil; messageCompression = nil; activity.reset(); contextStatus = ContextStatus(); approvalMode = .ask; planMode = false
     }
 
     func togglePin(_ id: String) {
@@ -160,7 +164,7 @@ final class ChatModel: ObservableObject {
         guard !busy, !running, !contextStatus.isCompacting, let task = tasks.first(where: { $0.id == id }) else { return }
         guard loadedID != id else { return }
         selectedID = id; cwd = task.cwd; draft = ""; error = nil
-        attachments = []; goal = nil; activity.reset(); contextStatus = ContextStatus(); approvalMode = .ask; planMode = false
+        attachments = []; goal = nil; messageCompression = nil; activity.reset(); contextStatus = ContextStatus(); approvalMode = .ask; planMode = false
         busy = true
         defer { busy = false }
         items = []
@@ -195,21 +199,29 @@ final class ChatModel: ObservableObject {
     func send() async {
         let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard connected, !busy, !running, !contextStatus.isCompacting, (!prompt.isEmpty || !attachments.isEmpty) else { return }
-        busy = true; error = nil
-        defer { busy = false }
+        let originalDraft = draft
+        let outgoingAttachments = attachments
+        busy = true; error = nil; messageCompression = nil
+        defer { busy = false; compressingMessage = false }
         do {
             if let selectedID, loadedID != selectedID { try await resume(selectedID) }
             try await ensureThread(title: prompt.isEmpty ? "Attached files" : prompt)
             guard let selectedID else { return }
+            compressingMessage = true
+            let compressed = await messageCompressor.compress(prompt)
+            compressingMessage = false
+            guard connected else { throw HarnessError(message: "The harness disconnected. Your draft has been kept.") }
             running = true; status = "Working…"; turnID = nil
             activity.begin(threadID: selectedID)
-            var params = modelSelection.turnParameters(threadID: selectedID, prompt: prompt)
+            var params = modelSelection.turnParameters(threadID: selectedID, prompt: compressed.text)
             params.merge(requestOptions(selection: modelSelection, mode: approvalMode, plan: planMode)) { _, new in new }
             var input = (params["input"] as? [[String: Any]]) ?? []
-            input += attachments.map(\.input)
+            input += outgoingAttachments.map(\.input)
             params["input"] = input
             let result = try await server.request("turn/start", params)
-            draft = ""; attachments = []
+            messageCompression = compressed
+            if draft == originalDraft { draft = "" }
+            attachments.removeAll { file in outgoingAttachments.contains(where: { $0.id == file.id }) }
             if running { turnID = (result["turn"] as? [String: Any])?["id"] as? String }
         } catch { running = false; self.error = error.localizedDescription; status = "Ready"; activity.stop(error: error.localizedDescription) }
     }

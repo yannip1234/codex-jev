@@ -50,23 +50,28 @@ struct JevSettingsView: View {
                 Text("The key is stored in a private file in your Codex home and is never added to chat.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Outgoing messages") {
+                Toggle("Compact my messages with Jev before sending", isOn: $settings.messageCompressionEnabled)
+                Text("Message text up to 40 KB is sent to Jev to select redundant passages, then verify the result. Codex receives the shorter text only when checks pass and estimated savings are useful. Otherwise it receives your original. Attachments are unchanged. Jev requests have their own cost.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Context compression") {
                 Toggle("Compress tool output with Jev", isOn: $settings.preferences.tool_compression)
-                Toggle("Compact conversations with Jev", isOn: $settings.preferences.compaction)
+                Toggle("Reduce older tool exchanges with Jev", isOn: $settings.preferences.compaction)
                 LabeledContent("Configuration", value: settings.compressionConfiguration)
-                Text("Jev compresses eligible plain-text tool output (8–64 KB), not ordinary chat replies. Conversation compaction can remove older tool exchanges; standard compaction runs when Jev cannot safely reduce them.")
+                Text("These harness options compress eligible plain-text tool output (8–64 KB) and older tool exchanges. Conversation compaction can remove older tool exchanges; standard compaction runs when Jev cannot safely reduce them.")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("Changes apply to the next compression or compaction.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("Jev activity") {
+            Section("Jev tool/history activity") {
                 if settings.compressionStatus.unavailable {
                     Text("Recovery records could not be read.")
                 } else {
                     LabeledContent("Saved tool reductions", value: "\(settings.compressionStatus.toolRecords)")
                     LabeledContent("Saved history candidates", value: "\(settings.compressionStatus.historyRecords)")
                     if settings.compressionStatus.toolRecords == 0 && settings.compressionStatus.historyRecords == 0 {
-                        Text("No Jev reductions recorded yet. Enabled settings do not mean every response is compressed.")
+                        Text("No tool/history reductions recorded yet. Enabled settings do not mean every response is compressed.")
                             .font(.callout)
                     }
                 }
@@ -76,10 +81,11 @@ struct JevSettingsView: View {
             }
             if let notice = settings.notice { Text(notice).font(.callout).textSelection(.enabled) }
         }
-        .formStyle(.grouped).frame(width: 580, height: 700)
+        .formStyle(.grouped).frame(width: 580, height: 820)
         .onAppear { settings.refreshCompressionStatus() }
         .onChange(of: settings.preferences.tool_compression) { _, _ in settings.savePreferences() }
         .onChange(of: settings.preferences.compaction) { _, _ in settings.savePreferences() }
+        .onChange(of: settings.messageCompressionEnabled) { _, _ in settings.saveMessagePreference() }
         .onDisappear { key = "" }
     }
 }

@@ -44,6 +44,7 @@ import Testing
     #expect(settings.compressionConfiguration == "Enabled · key configured")
     settings.preferences.tool_compression = false
     settings.preferences.compaction = false
+    settings.messageCompressionEnabled = false
     #expect(settings.compressionConfiguration == "Disabled")
     #expect(settings.compressionStatus.toolRecords == 0 && settings.compressionStatus.historyRecords == 0)
 }

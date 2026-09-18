@@ -76,6 +76,16 @@ struct ChatComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if model.compressingMessage {
+                HStack { ProgressView().controlSize(.mini); Text("Jev is checking your message…").font(.caption).foregroundStyle(.secondary) }
+            } else if let result = model.messageCompression {
+                HStack {
+                    Text(result.status).font(.caption).foregroundStyle(.secondary)
+                    if let archive = result.archive {
+                        Button("Original & sent text") { NSWorkspace.shared.open(archive) }.font(.caption).buttonStyle(.link)
+                    }
+                }
+            }
             if let message = model.contextStatus.message {
                 HStack(alignment: .top) {
                     if model.contextStatus.isCompacting { ProgressView().controlSize(.mini) }
