@@ -26,6 +26,8 @@ func privateAtomicWrite(_ data: Data, to url: URL) throws {
 final class SettingsStore: ObservableObject {
     @Published var preferences: JevPreferences
     @Published var keyPresent = false
+    @Published private(set) var savedKeyValid = false
+    @Published private(set) var compressionStatus = CompressionStatus()
     @Published var notice: String?
     let home: URL
 
@@ -35,14 +37,34 @@ final class SettingsStore: ObservableObject {
         let settings = self.home.appendingPathComponent("jev-settings.json")
         preferences = (try? JSONDecoder().decode(JevPreferences.self, from: Data(contentsOf: settings))) ?? JevPreferences()
         refreshKeyStatus()
+        refreshCompressionStatus()
     }
 
     var environmentKeyPresent: Bool {
-        !(ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        Self.validKey(ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"] ?? "")
     }
 
     func refreshKeyStatus() {
-        keyPresent = FileManager.default.fileExists(atPath: home.appendingPathComponent("jev-api-key").path)
+        let url = home.appendingPathComponent("jev-api-key")
+        keyPresent = FileManager.default.fileExists(atPath: url.path)
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        savedKeyValid = size > 0 && size <= 8192 && Self.validKey((try? String(contentsOf: url, encoding: .utf8)) ?? "")
+    }
+
+    var compressionConfiguration: String {
+        guard preferences.tool_compression || preferences.compaction else { return "Disabled" }
+        return environmentKeyPresent || savedKeyValid ? "Enabled · key configured" : "API key required"
+    }
+
+    func refreshCompressionStatus() {
+        refreshKeyStatus()
+        compressionStatus = CompressionStatus.read(home: home)
+    }
+
+    private static func validKey(_ value: String) -> Bool {
+        let key = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !key.isEmpty && key.utf8.count <= 8192
+            && !key.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.controlCharacters).contains($0) })
     }
 
     func savePreferences() {

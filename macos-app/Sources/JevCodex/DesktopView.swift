@@ -5,7 +5,7 @@ private typealias DesktopState<Value> = SwiftUI.State<Value>
 struct ContentView: View {
     @ObservedObject var model: ChatModel
     @DesktopState private var followOutput = true
-    private var locked: Bool { model.busy || model.running }
+    private var locked: Bool { model.busy || model.running || model.contextStatus.isCompacting }
 
     var body: some View {
         HSplitView {
@@ -30,6 +30,9 @@ struct ContentView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .preferredColorScheme(.light)
+        .sheet(item: Binding(get: { model.userQuestions.first }, set: { _ in })) { request in
+            QuestionSheet(model: model, request: request)
+        }
         .sheet(item: Binding(get: { model.approvals.first }, set: { _ in })) { approval in
             VStack(alignment: .leading, spacing: 16) {
                 Text(approval.title).font(.title2.bold())
@@ -52,8 +55,8 @@ struct ContentView: View {
             Text(model.taskTitle).font(.system(size: 14, weight: .medium)).lineLimit(1)
             Spacer(minLength: 10)
             if model.busy || model.running { ProgressView().controlSize(.mini) }
-            Text(model.running ? "Working…" : model.connected ? "Ready" : "Disconnected")
-                .font(.system(size: 11)).foregroundStyle(.tertiary).help(model.status)
+            Text(model.running ? model.activity.currentStep : model.connected ? "Ready" : "Disconnected")
+                .font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1).frame(maxWidth: 220).help(model.status)
             if let selectedID = model.selectedID {
                 Button { model.togglePin(selectedID) } label: {
                     Image(systemName: model.pinnedIDs.contains(selectedID) ? "pin.fill" : "pin")

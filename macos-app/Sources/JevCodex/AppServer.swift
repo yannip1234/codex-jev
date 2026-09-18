@@ -56,7 +56,7 @@ final class AppServer {
         let generation = UUID()
         self.generation = generation
         child.executableURL = try executable ?? Self.backendURL()
-        child.arguments = ["app-server"]
+        child.arguments = ["--enable", "goals", "app-server"]
         child.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
         let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
         child.standardInput = stdin
@@ -89,8 +89,8 @@ final class AppServer {
         do {
             try child.run()
             _ = try await request("initialize", ["clientInfo": [
-                "name": "jev-codex-native", "title": "Jev Codex", "version": "0.1.0"
-            ]])
+                "name": "jev-codex-native", "title": "Jev Codex", "version": "0.2.0"
+            ], "capabilities": ["experimentalApi": true]])
             try send(["method": "initialized"])
             ready = true
         } catch {
@@ -114,6 +114,10 @@ final class AppServer {
             catch { pending.removeValue(forKey: id)?.resume(throwing: error) }
         }
         return try JSONSerialization.jsonObject(with: result) as? [String: Any] ?? [:]
+    }
+
+    func respond(id: Any, result: [String: Any]) throws {
+        try send(["id": id, "result": result])
     }
 
     func respond(id: Any, decision: String) throws {
