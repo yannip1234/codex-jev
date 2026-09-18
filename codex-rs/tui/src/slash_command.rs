@@ -23,6 +23,7 @@ pub enum SlashCommand {
     #[strum(to_string = "approve")]
     AutoReview,
     Memories,
+    Jev,
     Skills,
     Import,
     Hooks,
@@ -142,6 +143,7 @@ impl SlashCommand {
             SlashCommand::ElevateSandbox => "set up elevated agent sandbox",
             SlashCommand::Experimental => "toggle experimental features",
             SlashCommand::AutoReview => "approve one retry of a recent auto-review denial",
+            SlashCommand::Jev => "configure Jev compression, compaction, and API key",
             SlashCommand::Memories => "configure memory use and generation",
             SlashCommand::Mcp => "list configured MCP tools; use /mcp verbose for details",
             SlashCommand::Apps => "manage apps",
@@ -220,6 +222,7 @@ impl SlashCommand {
             | SlashCommand::ElevateSandbox
             | SlashCommand::Experimental
             | SlashCommand::Memories
+            | SlashCommand::Jev
             | SlashCommand::Import
             | SlashCommand::Review
             | SlashCommand::Plan

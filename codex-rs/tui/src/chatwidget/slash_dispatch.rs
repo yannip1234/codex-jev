@@ -418,6 +418,12 @@ impl ChatWidget {
             SlashCommand::AutoReview => {
                 self.open_auto_review_denials_popup();
             }
+            SlashCommand::Jev => {
+                self.bottom_pane
+                    .show_view(Box::new(crate::bottom_pane::JevSettingsView::new(
+                        self.config.codex_home.as_path().to_path_buf(),
+                    )));
+            }
             SlashCommand::Memories => {
                 self.open_memories_popup();
             }
@@ -1231,6 +1237,7 @@ impl ChatWidget {
             | SlashCommand::Experimental
             | SlashCommand::AutoReview
             | SlashCommand::Memories
+            | SlashCommand::Jev
             | SlashCommand::Quit
             | SlashCommand::Exit
             | SlashCommand::Logout

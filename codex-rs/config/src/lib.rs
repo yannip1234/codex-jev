@@ -18,6 +18,7 @@ mod guardian;
 mod hook_config;
 mod host_name;
 mod in_app_browser_requirements;
+pub mod jev;
 mod key_aliases;
 pub mod loader;
 mod marketplace_edit;

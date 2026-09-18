@@ -66,6 +66,8 @@ mod apply_patch_header;
 mod approval_overlay;
 mod async_questions;
 mod hook_status;
+mod jev_settings_view;
+pub(crate) use jev_settings_view::JevSettingsView;
 mod mcp_server_elicitation;
 mod multi_select_picker;
 #[cfg(test)]
