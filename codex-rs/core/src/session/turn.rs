@@ -1434,6 +1434,23 @@ async fn run_auto_compact(
         return Ok(());
     }
 
+    // Model changes require native compaction to regenerate provider compatibility state.
+    if matches!(reason, CompactionReason::ContextLimit)
+        && crate::jev_compact::try_compact(
+            sess,
+            turn_context,
+            codex_analytics::CompactionTrigger::Auto,
+        )
+        .await?
+    {
+        emit_compact_metric(
+            &sess.services.session_telemetry,
+            "jev",
+            /*manual*/ false,
+        );
+        return Ok(());
+    }
+
     match turn_context.provider.capabilities().remote_compaction {
         RemoteCompactionSupport::V2 => {
             emit_compact_metric(

@@ -222,3 +222,7 @@ pub mod otel_init;
 
 // Captured environment bindings can be passed back to ThreadManager by internal reviewers.
 pub use environment_selection::TurnEnvironmentSnapshot;
+
+mod jev;
+mod jev_compact;
+mod jev_output;

@@ -382,7 +382,7 @@ async fn run_compact_task_inner_impl(
     sess.replace_compacted_history(
         new_history,
         reference_context_item,
-        world_state_baseline,
+        world_state_baseline.map(|world_state| world_state.snapshot()),
         CompactedHistoryMetadata {
             message: summary_text,
             window_number,

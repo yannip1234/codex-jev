@@ -38,6 +38,21 @@ impl SessionTask for CompactTask {
             return Ok(None);
         }
 
+        if crate::jev_compact::try_compact(
+            &session,
+            &ctx,
+            codex_analytics::CompactionTrigger::Manual,
+        )
+        .await?
+        {
+            emit_compact_metric(
+                &session.services.session_telemetry,
+                "jev",
+                /*manual*/ true,
+            );
+            return Ok(None);
+        }
+
         let result = match ctx.provider.capabilities().remote_compaction {
             RemoteCompactionSupport::V2 => {
                 emit_compact_metric(

@@ -3620,6 +3620,7 @@ impl Session {
         mut items: Vec<ResponseItemEnvelope>,
         image_preparations: Vec<ImagePreparationMetadata>,
     ) {
+        crate::jev_output::compress_items(self, turn_context, &mut items).await;
         // Save the originating history budget for replay.
         // Preserve any existing tool-specific override.
         let policy: codex_utils_output_truncation::TruncationPolicy =
@@ -4018,7 +4019,7 @@ impl Session {
         &self,
         mut items: Vec<ResponseItemEnvelope>,
         reference_context_item: Option<TurnContextItem>,
-        world_state_baseline: Option<Arc<WorldState>>,
+        world_state_baseline: Option<crate::context::world_state::WorldStateSnapshot>,
         metadata: CompactedHistoryMetadata,
     ) {
         for envelope in &mut items {
@@ -4068,8 +4069,7 @@ impl Session {
             compacted_item.guardian_history = state.history.guardian_history_checkpoint();
             compacted_item.retained_context = Some(state.history.retained_context().clone());
             state.reasoning_effort_pin = ReasoningEffortPin::Compacted;
-            if let Some(world_state) = world_state_baseline {
-                let snapshot = world_state.snapshot();
+            if let Some(snapshot) = world_state_baseline {
                 world_state_item = Some(WorldStateItem::full(snapshot.clone().into_object()));
                 state.history.set_world_state_baseline(snapshot);
             }
@@ -4518,7 +4518,7 @@ impl Session {
         self.replace_compacted_history(
             context_items,
             Some(turn_context_item),
-            Some(world_state),
+            Some(world_state.snapshot()),
             CompactedHistoryMetadata {
                 message: String::new(),
                 window_number,
