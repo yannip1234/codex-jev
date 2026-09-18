@@ -20,4 +20,4 @@ python3 -m unittest discover -s macos-app/bridge -p 'test_*.py' -v
 JEV_TEST_FILTER=/absolute/output/jev-message-filter python3 -m unittest discover -s macos-app/bridge -p 'test_*.py' -v
 ```
 
-Locally verified: official desktop initialize handshake and catalog/account reads, five bridge protocol tests, saved-key precedence, and a real compressed Astra turn returning `BRIDGE_OK`. Interactive UI validation was blocked by the locked Mac.
+Locally verified: official desktop initialize handshake and catalog/account reads, five bridge protocol tests, saved-key precedence, and a real compressed Astra turn returning `BRIDGE_OK`. A message sent manually in the official app was also checked: approximately 185 to 44 estimated input tokens, two Jev API requests, and the expected `COMPACTION_OK` response. Automated control of the official app is unavailable; other desktop interactions have not been exhaustively tested.

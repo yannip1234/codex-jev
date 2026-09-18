@@ -94,3 +94,11 @@ CHANGELOG.ignore.md
 # Python bytecode files
 __pycache__/
 *.pyc
+
+# Local Jev builds and private runtime data
+.build/
+*.app/
+jev-api-key
+jev-message-originals/
+jev-originals/
+jev-bridge/activity.jsonl

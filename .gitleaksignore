@@ -1,0 +1,20 @@
+# Reviewed findings in the imported OpenAI baseline only.
+# Test credentials/keys, sanitizer examples, a Cargo dependency name, and a hash constant.
+# Exact fingerprints keep later changes subject to scanning.
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/agent-identity/src/lib.rs:private-key:832
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/Cargo.lock:generic-api-key:5815
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/app-server/tests/suite/v2/connection_handling_websocket.rs:generic-api-key:306
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/src/login.rs:generic-api-key:630
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/src/login.rs:generic-api-key:636
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/tests/cloud_auth.rs:generic-api-key:26
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/tests/login.rs:generic-api-key:283
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/tests/login.rs:generic-api-key:299
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/src/doctor/output.rs:aws-access-token:1822
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/cli/src/doctor/output.rs:aws-access-token:1823
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/codex-mcp/src/trusted_access_tests.rs:generic-api-key:260
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/core-plugins/src/remote/catalog_cache.rs:generic-api-key:175
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/codex-mcp/src/connection_manager_tests.rs:generic-api-key:6372
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/exec/tests/suite/apply_patch.rs:jwt:200
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/login/src/auth/agent_identity.rs:private-key:573
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/login/src/auth/auth_tests.rs:private-key:2826
+975785fd7da57ccdf3e1253aec470b7a7335e114:codex-rs/secrets/src/sanitizer.rs:aws-access-token:52
