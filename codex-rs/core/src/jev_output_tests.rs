@@ -186,7 +186,7 @@ async fn combined_verification_failure_keeps_original_and_creates_no_archive() {
                 .map(|key| {
                     (
                         key.clone(),
-                        json!({"type":"noul","noul":if key=="preserved" {0.1} else {0.99}}),
+                        json!({"type":"noul","noul":if key=="preserved" || key=="readable" {0.1} else {0.99}}),
                     )
                 })
                 .collect::<serde_json::Map<_, _>>();
@@ -260,16 +260,16 @@ async fn exact_duplicate_proposal_retains_blocks_and_repetition_references_and_r
         "Start\n{}FINAL_STATUS=OK\n",
         "Incidental progress; waiting for completion with nothing new to report.\n".repeat(240)
     );
-    for confidence in [0.84, 0.89] {
+    for confidence in [0.79, 0.89] {
         server.reset().await;
         Mock::given(method("POST"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({"answers":{
-                "preserved":{"type":"noul","noul":confidence}
+                "readable":{"type":"noul","noul":confidence}
             }})))
             .mount(&server)
             .await;
         let result = compress_text(&client, &original, "Report FINAL_STATUS").await;
-        assert_eq!(result.is_some(), confidence >= 0.85);
+        assert_eq!(result.is_some(), confidence >= 0.80);
         if let Some(result) = result {
             assert!(result.contains("Start\n"));
             assert!(result.contains("FINAL_STATUS=OK\n"));
@@ -311,22 +311,63 @@ async fn exact_duplicate_proposal_retains_blocks_and_repetition_references_and_r
     }
 }
 
+#[test_case::test_case("Report FINAL_STATUS from the build log. Repeated progress lines are incidental."; "focused task")]
+#[test_case::test_case("Build a macOS menu app, add API key settings, token counters and word compaction, update README, then test tool compaction."; "broad task")]
 #[tokio::test]
 #[ignore = "requires TYPESAFE_API_KEY and makes a live Jev request"]
-async fn live_jev_duplicate_tool_compaction() {
+async fn live_jev_duplicate_tool_compaction(goal: &str) {
     let home = tempfile::tempdir().unwrap();
     let client = JevClient::from_home(home.path()).expect("configure TYPESAFE_API_KEY");
     let text = format!(
         "Build started\n{}FINAL_STATUS=OK\n",
         "Incidental progress; waiting for completion with nothing new to report.\n".repeat(240)
     );
-    let result = compress_text(
-        &client,
-        &text,
-        "Report FINAL_STATUS from the build log. Repeated progress lines are incidental.",
-    )
-    .await
-    .expect("live duplicate proposal should preserve the final status");
+    let result = compress_text(&client, &text, goal)
+        .await
+        .expect("live duplicate proposal should preserve the final status");
     assert!(result.contains("FINAL_STATUS=OK"));
     assert!(result.len() * 4 < text.len() * 3);
+}
+
+#[tokio::test]
+#[ignore = "requires TYPESAFE_API_KEY and makes a live Jev request"]
+async fn live_jev_duplicate_readability_rejects_ambiguous_references() {
+    let home = tempfile::tempdir().unwrap();
+    let client = JevClient::from_home(home.path()).expect("configure TYPESAFE_API_KEY");
+    let scores = client
+        .judge(
+            json!({
+                "goal":"Assess readability of the encoded tool result.",
+                "candidate":"[source lines 1-242 repeat something from earlier]"
+            }),
+            vec![("readable".into(), DUPLICATE_READABILITY_QUESTION.into())],
+        )
+        .await
+        .unwrap();
+    assert!(
+        scores[0] < 0.80,
+        "ambiguous references must fail readability, got {}",
+        scores[0]
+    );
+}
+
+#[test]
+fn duplicate_integrity_rejects_changed_missing_or_misdirected_source() {
+    let source = "alpha\nbeta\nalpha\nbeta\nOK\n";
+    let valid = "[source lines 1-2]\nalpha\nbeta\n[source lines 3-4 repeat lines 1-2 verbatim]\n[source lines 5-5]\nOK\n";
+    assert!(preserves_duplicate_source(source, valid));
+    for damaged in [
+        valid.replace("OK\n", "FAILED\n"),
+        valid.replace("[source lines 5-5]\nOK\n", ""),
+        valid.replace("repeat lines 1-2", "repeat lines 2-3"),
+        valid.replace("source lines 3-4", "source lines 4-5"),
+        valid.replace("1-2", "1-18446744073709551615"),
+    ] {
+        assert!(!preserves_duplicate_source(source, &damaged));
+    }
+    // Source text resembling our headers must be consumed as content, not instructions.
+    let source = "[source lines 7-8]\nλ\n[source lines 7-8]\nλ\n";
+    let encoded =
+        "[source lines 1-2]\n[source lines 7-8]\nλ\n[source lines 3-4 repeat lines 1-2 verbatim]\n";
+    assert!(preserves_duplicate_source(source, encoded));
 }
