@@ -1,3 +1,7 @@
+# Legacy Jev Codex chat client
+
+The current product is the self-contained menu bar app and Dock wrapper. See the [main README](../README.md). This older chat-client source is retained for reference and regression tests; it is no longer required or built by the launcher instructions.
+
 # Jev Codex for macOS
 
 An experimental [official desktop bridge](bridge/README.md) can also launch the installed Codex app against this engine and check outgoing messages with Jev.

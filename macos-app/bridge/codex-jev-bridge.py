@@ -12,9 +12,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parent
-BACKEND = os.environ.get(
-    "JEV_REAL_CODEX", str(ROOT / "JevCodex.app/Contents/Resources/codex-jev")
-)
+BACKEND = os.environ.get("JEV_REAL_CODEX", str(ROOT / "codex-jev"))
 FILTER = os.environ.get("JEV_MESSAGE_FILTER", str(ROOT / "jev-message-filter"))
 HOME = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
 MAX_LINE = 64 * 1024 * 1024

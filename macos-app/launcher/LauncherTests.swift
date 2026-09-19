@@ -16,11 +16,16 @@ import Foundation
         precondition(standard["CODEX_CLI_PATH"] == nil && standard["OTHER"] == "keep")
         precondition(standard["CODEX_HOME"] == "/tmp/custom home")
         let enabled = config.environment(jev: true, inherited: inherited)
-        precondition(enabled["CODEX_CLI_PATH"] == output.appendingPathComponent("codex-jev-bridge").path)
+        precondition(enabled["CODEX_CLI_PATH"] == output.appendingPathComponent("Codex Jev Launcher.app/Contents/Resources/codex-jev-bridge").path)
+        precondition(config.requiredFiles.allSatisfy { $0.path.hasPrefix(config.resources.path + "/") })
         precondition(enabled["CODEX_APP_SERVER_FORCE_CLI"] == "1")
         precondition(enabled["CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED"] == "1")
         precondition(enabled["CODEX_ELECTRON_USER_DATA_PATH"] == config.profile.path)
         precondition(config.logURL(environment: inherited).path == "/tmp/custom home/jev-bridge/activity.jsonl")
+        precondition(config.legacyAppInUse(commands: output.path + "/JevCodex.app/Contents/Resources/codex-jev app-server"))
+        precondition(config.legacyAppInUse(commands: output.path + "/JevCodex.app/Contents/MacOS/JevCodex"))
+        precondition(!config.legacyAppInUse(commands: "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"))
+        precondition(!config.legacyAppInUse(commands: config.resources.path + "/codex-jev app-server"))
         print("Launcher checks passed: trial identity, regular-instance exclusion, environment isolation, and custom Codex home.")
     }
 }

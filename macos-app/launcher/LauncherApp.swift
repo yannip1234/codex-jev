@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
     private var timer: Timer?
     private var busy = false
     private var trialApps: [NSRunningApplication] = []
+    private var settingsWindow: LauncherSettings?
 
     static func main() {
         let app = NSApplication.shared
@@ -41,7 +42,7 @@ import UniformTypeIdentifiers
         toggleItem = item("Use Codex–Jev", action: #selector(toggle), menu: menu)
         menu.addItem(.separator())
         item("Open Codex", action: #selector(openCodex), menu: menu)
-        item("Open Jev Codex (settings)", action: #selector(openNative), menu: menu)
+        item("Settings…", action: #selector(openSettings), menu: menu).keyEquivalent = ","
         item("Show Bridge Log", action: #selector(showLog), menu: menu)
         chooseItem = item("Choose Codex App…", action: #selector(chooseApp), menu: menu)
         menu.addItem(.separator())
@@ -51,6 +52,7 @@ import UniformTypeIdentifiers
         timer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        if ProcessInfo.processInfo.arguments.contains("--settings") { openSettings() }
     }
 
     @discardableResult private func item(_ title: String, action: Selector, menu: NSMenu) -> NSMenuItem {
@@ -60,9 +62,22 @@ import UniformTypeIdentifiers
 
     func menuWillOpen(_ menu: NSMenu) { refresh() }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "codex-jev" {
+            if url.host == "settings" { openSettings() }
+            else if url.host == "open" {
+                guard !busy else { continue }
+                refresh()
+                if let app = trialApps.first { app.activate(options: [.activateAllWindows]) }
+                else { launch(jev: true) }
+            }
+        }
+    }
+
     private func refresh() {
         guard !busy else { return }
         let config = configuration
+        config.retireLegacyAppIfRequested()
         trialApps = []
         if let identifier = Bundle(url: config.officialApp)?.bundleIdentifier {
             for app in NSRunningApplication.runningApplications(withBundleIdentifier: identifier) {
@@ -136,7 +151,7 @@ import UniformTypeIdentifiers
         }
         if jev {
             guard config.requiredFiles.allSatisfy({ FileManager.default.isExecutableFile(atPath: $0.path) }) else {
-                finish(error: "Keep Codex Jev Launcher.app beside codex-jev-bridge, jev-message-filter, and JevCodex.app in the build output folder."); return
+                finish(error: "The launcher's bundled engine or bridge is missing. Rebuild or reinstall Codex Jev Launcher.app."); return
             }
             do { try FileManager.default.createDirectory(at: config.profile, withIntermediateDirectories: true) }
             catch { finish(error: error.localizedDescription); return }
@@ -160,11 +175,9 @@ import UniformTypeIdentifiers
         }
     }
 
-    @objc private func openNative() {
-        NSWorkspace.shared.openApplication(at: configuration.nativeApp,
-            configuration: NSWorkspace.OpenConfiguration()) { [weak self] _, error in
-                if let error { Task { @MainActor in self?.finish(error: error.localizedDescription) } }
-            }
+    @objc private func openSettings() {
+        if settingsWindow == nil { settingsWindow = LauncherSettings() }
+        settingsWindow?.present()
     }
 
     @objc private func showLog() {
