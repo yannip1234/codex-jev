@@ -152,3 +152,31 @@ async fn live_jev_client_accepts_real_api_response() {
     assert_eq!(answer.len(), 1);
     assert!((0.0..=1.0).contains(&answer[0]));
 }
+
+#[test]
+fn activity_records_only_metadata_and_token_counts() {
+    let home = tempfile::tempdir().unwrap();
+    record_activity(
+        home.path(),
+        "tool_output",
+        "compacted",
+        "verified_reduction",
+        Some((100, 40)),
+    );
+    let path = home.path().join("jev-bridge/engine-activity.jsonl");
+    let mut value: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    assert!(value["time"].as_f64().is_some());
+    value.as_object_mut().unwrap().remove("time");
+    assert_eq!(
+        value,
+        json!({"component":"tool_output","event":"compacted","reason":"verified_reduction","originalTokens":100,"compactedTokens":40})
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(
+            std::fs::metadata(path).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+    }
+}

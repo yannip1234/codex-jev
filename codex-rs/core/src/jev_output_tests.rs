@@ -235,5 +235,98 @@ fn compaction_housekeeping_does_not_replace_user_requirements() {
         compression_goal(&items),
         Some("Use Python only.\nFix the build.\n".into())
     );
-    assert_eq!(compression_goal(&[user(&"x".repeat(16_001))]), None);
+    let long_requirements = "Keep this exact requirement. ".repeat(800);
+    assert_eq!(
+        compression_goal(&[user(&long_requirements)]),
+        Some(format!("{long_requirements}\n"))
+    );
+    assert_eq!(compression_goal(&[user(&"x".repeat(64_001))]), None);
+}
+
+#[tokio::test]
+async fn exact_duplicate_proposal_retains_blocks_and_repetition_references_and_requires_verification()
+ {
+    let server = MockServer::start().await;
+    let home = tempfile::tempdir().unwrap();
+    let client = crate::jev::JevClient {
+        home: home.path().into(),
+        api_key: "fixture-secret".into(),
+        endpoint: server.uri(),
+        http: codex_http_client::HttpClientBuilder::new()
+            .build_direct()
+            .unwrap(),
+    };
+    let original = format!(
+        "Start\n{}FINAL_STATUS=OK\n",
+        "Incidental progress; waiting for completion with nothing new to report.\n".repeat(240)
+    );
+    for confidence in [0.84, 0.89] {
+        server.reset().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"answers":{
+                "preserved":{"type":"noul","noul":confidence}
+            }})))
+            .mount(&server)
+            .await;
+        let result = compress_text(&client, &original, "Report FINAL_STATUS").await;
+        assert_eq!(result.is_some(), confidence >= 0.85);
+        if let Some(result) = result {
+            assert!(result.contains("Start\n"));
+            assert!(result.contains("FINAL_STATUS=OK\n"));
+            assert!(result.contains("repeat lines 13-24 verbatim"));
+            assert!(result.contains(
+                "Incidental progress; waiting for completion with nothing new to report.\n"
+            ));
+            assert!(result.len() < original.len() / 2);
+            // Independently expand the source-line representation and recover the exact log.
+            let lines = result.split_inclusive('\n').collect::<Vec<_>>();
+            let mut restored = Vec::new();
+            let mut cursor = 1; // recovery-file reference
+            while cursor < lines.len() {
+                let header = lines[cursor].trim();
+                let numbers = header
+                    .split(|c: char| !c.is_ascii_digit())
+                    .filter(|part| !part.is_empty())
+                    .map(|part| part.parse::<usize>().unwrap())
+                    .collect::<Vec<_>>();
+                cursor += 1;
+                assert_eq!(numbers[0], restored.len() + 1);
+                if numbers.len() == 4 {
+                    let repeated = restored[numbers[2] - 1..numbers[3]].to_vec();
+                    assert_eq!(repeated.len(), numbers[1] - numbers[0] + 1);
+                    restored.extend(repeated);
+                } else {
+                    assert_eq!(numbers.len(), 2);
+                    let count = numbers[1] - numbers[0] + 1;
+                    restored.extend_from_slice(&lines[cursor..cursor + count]);
+                    cursor += count;
+                }
+            }
+            assert_eq!(restored.concat(), original);
+        }
+        let requests = server.received_requests().await.unwrap();
+        assert_eq!(requests.len(), 1);
+        let payload: Value = requests[0].body_json().unwrap();
+        assert_eq!(payload["questions"].as_object().unwrap().len(), 1);
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires TYPESAFE_API_KEY and makes a live Jev request"]
+async fn live_jev_duplicate_tool_compaction() {
+    let home = tempfile::tempdir().unwrap();
+    let client = JevClient::from_home(home.path()).expect("configure TYPESAFE_API_KEY");
+    let text = format!(
+        "Build started\n{}FINAL_STATUS=OK\n",
+        "Incidental progress; waiting for completion with nothing new to report.\n".repeat(240)
+    );
+    let result = compress_text(
+        &client,
+        &text,
+        "Report FINAL_STATUS from the build log. Repeated progress lines are incidental.",
+    )
+    .await
+    .expect("live duplicate proposal should preserve the final status");
+    assert!(result.contains("FINAL_STATUS=OK"));
+    assert!(result.len() * 4 < text.len() * 3);
 }

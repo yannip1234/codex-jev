@@ -70,7 +70,19 @@ impl JevClient {
         {
             return None;
         }
-        tokio::time::timeout(Duration::from_secs(15), async {
+        let component = if payload["state"].get("goal").is_some() {
+            "tool_output"
+        } else {
+            "history"
+        };
+        record_activity(
+            &self.home,
+            component,
+            "api_started",
+            "jev_api_request",
+            /*tokens*/ None,
+        );
+        let result = tokio::time::timeout(Duration::from_secs(15), async {
             let mut response = self
                 .http
                 .post(&self.endpoint)
@@ -107,7 +119,19 @@ impl JevClient {
         })
         .await
         .ok()
-        .flatten()
+        .flatten();
+        record_activity(
+            &self.home,
+            component,
+            "api_completed",
+            if result.is_some() {
+                "valid_response"
+            } else {
+                "api_failed_or_invalid_response"
+            },
+            /*tokens*/ None,
+        );
+        result
     }
 
     /// Saves exact source bytes before any accepted omission. Never follows a chosen filename.
@@ -145,3 +169,39 @@ impl JevClient {
 #[cfg(test)]
 #[path = "jev_tests.rs"]
 mod tests;
+
+/// Private metadata only; never accepts message bodies or credentials as log fields.
+pub(crate) fn record_activity(
+    home: &Path,
+    component: &'static str,
+    event: &'static str,
+    reason: &'static str,
+    tokens: Option<(usize, usize)>,
+) {
+    let _ = (|| -> std::io::Result<()> {
+        let directory = home.join("jev-bridge");
+        if std::fs::symlink_metadata(&directory).is_ok_and(|m| m.file_type().is_symlink()) {
+            return Ok(());
+        }
+        std::fs::create_dir_all(&directory)?;
+        let mut options = std::fs::OpenOptions::new();
+        options.append(true).create(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700))?;
+            options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+        }
+        let mut log = options.open(directory.join("engine-activity.jsonl"))?;
+        let mut entry = json!({"time":chrono::Utc::now().timestamp_millis() as f64 / 1000.0,
+            "component":component,"event":event,"reason":reason});
+        if let Some((before, after)) = tokens {
+            entry["originalTokens"] = json!(before);
+            entry["compactedTokens"] = json!(after);
+        }
+        let mut bytes = serde_json::to_vec(&entry)?;
+        bytes.push(b'\n');
+        log.write_all(&bytes)
+    })();
+}

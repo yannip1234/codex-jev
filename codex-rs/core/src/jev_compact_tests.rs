@@ -419,3 +419,31 @@ async fn sequential_batches_judge_only_history_remaining_after_prior_removal() -
     assert!(!home.path().join("jev-originals").exists());
     Ok(())
 }
+
+#[test]
+fn judgment_omits_retained_image_bytes_and_opaque_checkpoints_without_mutating_history() {
+    let mut items = history();
+    let image_url = format!("data:image/png;base64,{}", "a".repeat(200_000));
+    items.insert(
+        0,
+        item(json!({"type":"message", "role":"user", "content":[
+            {"type":"input_text","text":"Preserve the screenshot's layout"},
+            {"type":"input_image","image_url":image_url}
+        ]})),
+    );
+    items.insert(
+        1,
+        item(json!({"type":"compaction","encrypted_content":"opaque".repeat(20_000)})),
+    );
+    let before = items.clone();
+    let (state, candidates) = judgment_state(&items, json!("Follow the request"), &HashSet::new())
+        .expect("retained binary data must not exhaust the judgment budget");
+    let encoded = serde_json::to_string(&state).unwrap();
+    assert!(encoded.len() < MAX_STATE_BYTES);
+    assert!(!encoded.contains("data:image"));
+    assert!(!encoded.contains(&"opaque".repeat(100)));
+    assert!(encoded.contains("Preserve the screenshot's layout"));
+    assert!(encoded.contains("unavailable_to_judge"));
+    assert_eq!(candidates, vec![vec![3, 4]]);
+    assert_eq!(items, before);
+}
