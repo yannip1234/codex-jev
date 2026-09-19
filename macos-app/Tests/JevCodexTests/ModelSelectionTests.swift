@@ -78,7 +78,7 @@ private func catalogModel(_ id: String, defaultModel: Bool = false, defaultEffor
     var duringCompression: (() -> Void)?
     let compressor = MessageCompressor(home: directory, key: { "test-key" }, judge: { _, questions in
         duringCompression?()
-        return Dictionary(uniqueKeysWithValues: questions.keys.map { ($0, $0 == "drop_1" || $0.hasPrefix("verify_") ? 1.0 : 0.0) })
+        return Dictionary(uniqueKeysWithValues: questions.keys.map { ($0, $0 == "keep_0" || $0 == "keep_1" || $0.hasPrefix("verify_") ? 1.0 : 0.0) })
     })
     let model = ChatModel(indexURL: directory.appendingPathComponent("tasks.json"), messageCompressor: compressor)
     defer { model.server.stop() }
@@ -97,5 +97,5 @@ private func catalogModel(_ id: String, defaultModel: Bool = false, defaultEffor
     #expect(received?["model"] as? String == "wire-second")
     #expect(received?["effort"] as? String == "high")
     #expect(received?["threadId"] as? String == "test-thread")
-    #expect((received?["input"] as? [[String: Any]])?.first?["text"] as? String == "Say hello")
+    #expect((received?["input"] as? [[String: Any]])?.first?["text"] as? String == "Say hello\n")
 }

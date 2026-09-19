@@ -27,6 +27,7 @@ final class SettingsStore: ObservableObject {
     @Published var preferences: JevPreferences
     @Published var keyPresent = false
     @Published var messageCompressionEnabled = true
+    @Published var messageCompressionMode: MessageCompressionMode = .balanced
     @Published private(set) var savedKeyValid = false
     @Published private(set) var compressionStatus = CompressionStatus()
     @Published var notice: String?
@@ -38,6 +39,7 @@ final class SettingsStore: ObservableObject {
         let settings = self.home.appendingPathComponent("jev-settings.json")
         preferences = (try? JSONDecoder().decode(JevPreferences.self, from: Data(contentsOf: settings))) ?? JevPreferences()
         messageCompressionEnabled = MessageCompressor.enabled(home: self.home)
+        messageCompressionMode = MessageCompressor.preference(home: self.home).mode
         refreshKeyStatus()
         refreshCompressionStatus()
     }
@@ -71,7 +73,7 @@ final class SettingsStore: ObservableObject {
 
     func saveMessagePreference() {
         do {
-            try privateAtomicWrite(JSONEncoder().encode(MessageCompressionPreference(enabled: messageCompressionEnabled)),
+            try privateAtomicWrite(JSONEncoder().encode(MessageCompressionPreference(enabled: messageCompressionEnabled, mode: messageCompressionMode)),
                 to: home.appendingPathComponent("jev-message-settings.json"))
             notice = "Message compaction setting saved."
         } catch { notice = error.localizedDescription }

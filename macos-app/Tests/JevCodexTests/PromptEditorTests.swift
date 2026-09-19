@@ -109,3 +109,36 @@ import Testing
     #expect(editor.string.isEmpty)
     #expect(draft.isEmpty)
 }
+
+@Test @MainActor func settingsEditingMenuRoutesStandardShortcutsToResponder() {
+    let app = NSApplication.shared
+    let previous = app.nextResponder
+    let clipboard = NSPasteboard.general
+    let saved = clipboard.pasteboardItems?.map { item in item.types.compactMap { type in item.data(forType: type).map { (type, $0) } } } ?? []
+    defer {
+        app.nextResponder = previous
+        clipboard.clearContents()
+        let items = saved.map { values in
+            let item = NSPasteboardItem()
+            for (type, data) in values { item.setData(data, forType: type) }
+            return item
+        }
+        clipboard.writeObjects(items)
+    }
+    let editor = NSTextView(frame: .zero)
+    editor.string = "synthetic clipboard fixture"
+    editor.setSelectedRange(NSRange(location: 0, length: editor.string.utf16.count))
+    app.nextResponder = editor
+    let menu = SettingsEditingMenu.make()
+    func press(_ key: String) -> Bool {
+        menu.performKeyEquivalent(with: NSEvent.keyEvent(with: .keyDown, location: .zero,
+            modifierFlags: .command, timestamp: 0, windowNumber: 0, context: nil,
+            characters: key, charactersIgnoringModifiers: key, isARepeat: false, keyCode: 0)!)
+    }
+    #expect(press("c"))
+    #expect(clipboard.string(forType: .string) == "synthetic clipboard fixture")
+    editor.string = "replace me"
+    #expect(press("a"))
+    #expect(press("v"))
+    #expect(editor.string == "synthetic clipboard fixture")
+}

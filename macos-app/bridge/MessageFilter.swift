@@ -26,7 +26,8 @@ struct MessageFilter {
                 })
                 let result = await compressor.compress(text)
                 input[index]["text"] = result.text
-                stats = ["apiCalls": result.apiCalls, "savedEstimate": result.savedEstimate, "status": result.status]
+                stats = ["apiCalls": result.apiCalls, "savedEstimate": result.savedEstimate, "status": result.status,
+                    "originalTokens": MessageCompressor.estimate(text), "compactedTokens": MessageCompressor.estimate(result.text)]
             }
             params["input"] = input; request["params"] = params
             let output = try JSONSerialization.data(withJSONObject: ["request": request, "stats": stats])

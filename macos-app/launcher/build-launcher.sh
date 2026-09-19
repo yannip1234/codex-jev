@@ -14,7 +14,10 @@ trap 'rm -f "$STAGING"' EXIT
 swiftc -O -target "$(uname -m)-apple-macos14.0" -parse-as-library \
   "$SOURCE/LauncherConfiguration.swift" "$SOURCE/LauncherApp.swift" "$SOURCE/LauncherSettings.swift" \
   "$SOURCE/../Sources/JevCodex/SettingsStore.swift" \
+  "$SOURCE/../Sources/JevCodex/SettingsEditingMenu.swift" \
   "$SOURCE/../Sources/JevCodex/MessageCompressor.swift" \
+  "$SOURCE/../Sources/JevCodex/MessageWordSpans.swift" \
+  "$SOURCE/../Sources/JevCodex/CompressionUsage.swift" \
   "$SOURCE/../Sources/JevCodex/CompressionStatus.swift" -o "$STAGING"
 chmod 755 "$STAGING"
 mv -f "$STAGING" "$APP/Contents/MacOS/Launcher"
@@ -36,8 +39,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>Codex Jev Launcher</string>
 <key>CFBundleExecutable</key><string>Launcher</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.3.0</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>CFBundleURLTypes</key><array><dict>
 <key>CFBundleURLName</key><string>Codex Jev Launcher</string>
 <key>CFBundleURLSchemes</key><array><string>codex-jev</string></array>

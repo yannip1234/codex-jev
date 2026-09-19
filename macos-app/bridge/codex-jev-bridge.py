@@ -98,7 +98,7 @@ def run(args):
                     helpers.add(helper)
                     if stopping.is_set():
                         helper.terminate()
-                result, _ = helper.communicate(line, timeout=35)
+                result, _ = helper.communicate(line, timeout=85)
                 if helper.returncode == 0 and len(result) <= 2_000_000:
                     filtered = json.loads(result)
                     updated = filtered["request"]

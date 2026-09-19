@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
     private var status: NSStatusItem!
     private var modeItem: NSMenuItem!
     private var toggleItem: NSMenuItem!
+    private var usageItem: NSMenuItem!
     private var chooseItem: NSMenuItem!
     private var timer: Timer?
     private var busy = false
@@ -15,6 +16,7 @@ import UniformTypeIdentifiers
         let app = NSApplication.shared
         let delegate = LauncherApp()
         app.delegate = delegate
+        app.mainMenu = SettingsEditingMenu.make()
         app.setActivationPolicy(.accessory)
         withExtendedLifetime(delegate) { app.run() }
     }
@@ -47,6 +49,8 @@ import UniformTypeIdentifiers
         chooseItem = item("Choose Codex App…", action: #selector(chooseApp), menu: menu)
         menu.addItem(.separator())
         item("Quit Launcher", action: #selector(quit), menu: menu)
+        usageItem = NSMenuItem(title: "Estimated tokens: 0 → 0", action: nil, keyEquivalent: "")
+        usageItem.isEnabled = false; menu.insertItem(usageItem, at: 1)
         status.menu = menu
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
@@ -77,6 +81,8 @@ import UniformTypeIdentifiers
     private func refresh() {
         guard !busy else { return }
         let config = configuration
+        let counts = CompressionUsage.read(home: MessageCompressor.defaultHome).total
+        usageItem?.title = "Estimated tokens: \(counts.original.formatted()) → \(counts.compacted.formatted()) · saved \(counts.saved.formatted())"
         config.retireLegacyAppIfRequested()
         trialApps = []
         if let identifier = Bundle(url: config.officialApp)?.bundleIdentifier {
